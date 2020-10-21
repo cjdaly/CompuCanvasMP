@@ -12,7 +12,7 @@ The CompuCanvas MP series uses an Adafruit [Matrix Portal](https://www.adafruit.
 
 The `CCMP` folder here contains a CircuitPython program that will drive the Matrix Portal with features like clocks, background images, message boards and more. To try it:
 
-* You will need to copy these libraries to the `.../CIRCUITPY/lib` folder:
+* You will need to copy these [libraries](https://circuitpython.org/libraries) to the `.../CIRCUITPY/lib` folder:
   * adafruit_bitmap_font
   * adafruit_bus_device
   * adafruit_display_shapes
