@@ -1,5 +1,7 @@
 # CompuCanvas MP series
 
+![CompuCanvasMP](images/CompuCanvasMP-1.jpg)
+
 The CompuCanvas MP series uses an Adafruit [Matrix Portal](https://www.adafruit.com/product/4745) (running [CircuitPython](https://circuitpython.org/)) as the system controller.  One of several RGB matrix panels are placed behind the canvas to produce a low resolution display.
 
 ## CompuCanvas MP variants
@@ -36,3 +38,4 @@ secrets = {
 }
 ```
 
+![CompuCanvasMP with (sleeping) friend](images/CompuCanvasMP-2.jpg)
