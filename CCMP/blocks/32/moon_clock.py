@@ -24,13 +24,8 @@ from adafruit_matrixportal.network import Network
 from adafruit_matrixportal.matrix import Matrix
 from adafruit_bitmap_font import bitmap_font
 import adafruit_display_text.label
-import adafruit_lis3dh
 
-try:
-    from secrets import secrets
-except ImportError:
-    print('WiFi secrets are kept in secrets.py, please add them there!')
-    raise
+
 
 # CONFIGURABLE SETTINGS ----------------------------------------------------
 
@@ -170,116 +165,106 @@ class MoonData():
 
 
 # ONE-TIME INITIALIZATION --------------------------------------------------
+def init(cc_state):
+    #MATRIX = Matrix(bit_depth=BITPLANES)
+    #DISPLAY = MATRIX.display
+    # LARGE_FONT = bitmap_font.load_font('/fonts/helvB12.bdf')
+    # SMALL_FONT = bitmap_font.load_font('/fonts/helvR10.bdf')
+    
+    LARGE_FONT.load_glyphs('0123456789:')
+    SMALL_FONT.load_glyphs('0123456789:/.%')
 
-MATRIX = Matrix(bit_depth=BITPLANES)
-DISPLAY = MATRIX.display
-ACCEL = adafruit_lis3dh.LIS3DH_I2C(busio.I2C(board.SCL, board.SDA),
-                                   address=0x19)
-_ = ACCEL.acceleration # Dummy reading to blow out any startup residue
-time.sleep(0.1)
-DISPLAY.rotation = (int(((math.atan2(-ACCEL.acceleration.y,
-                                     -ACCEL.acceleration.x) + math.pi) /
-                         (math.pi * 2) + 0.875) * 4) % 4) * 90
-
-LARGE_FONT = bitmap_font.load_font('/fonts/helvB12.bdf')
-SMALL_FONT = bitmap_font.load_font('/fonts/helvR10.bdf')
-SYMBOL_FONT = bitmap_font.load_font('/fonts/6x10.bdf')
-LARGE_FONT.load_glyphs('0123456789:')
-SMALL_FONT.load_glyphs('0123456789:/.%')
-SYMBOL_FONT.load_glyphs('\u21A5\u21A7')
-
-# Display group is set up once, then we just shuffle items around later.
-# Order of creation here determines their stacking order.
-GROUP = displayio.Group(max_size=10)
-# Element 0 is a stand-in item, later replaced with the moon phase bitmap
-# pylint: disable=bare-except
-try:
-    FILENAME = 'moon/splash-' + str(DISPLAY.rotation) + '.bmp'
-    BITMAP = displayio.OnDiskBitmap(open(FILENAME, 'rb'))
-    TILE_GRID = displayio.TileGrid(BITMAP,
+    # Display group is set up once, then we just shuffle items around later.
+    # Order of creation here determines their stacking order.
+    GROUP = displayio.Group(max_size=10)
+    # Element 0 is a stand-in item, later replaced with the moon phase bitmap
+    # pylint: disable=bare-except
+    try:
+        FILENAME = 'moon/splash-' + str(DISPLAY.rotation) + '.bmp'
+        BITMAP = displayio.OnDiskBitmap(open(FILENAME, 'rb'))
+        TILE_GRID = displayio.TileGrid(BITMAP,
                                    pixel_shader=displayio.ColorConverter(),)
-    GROUP.append(TILE_GRID)
-except:
-    GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0xFF0000,
+        GROUP.append(TILE_GRID)
+    except:
+        GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0xFF0000,
                                                    text='AWOO'))
-    GROUP[0].x = (DISPLAY.width - GROUP[0].bounding_box[2] + 1) // 2
-    GROUP[0].y = DISPLAY.height // 2 - 1
-# Elements 1-4 are an outline around the moon percentage -- text labels
-# offset by 1 pixel up/down/left/right. Initial position is off the matrix,
-# updated on first refresh. Initial text value must be long enough for
-# longest anticipated string later.
-for i in range(4):
-    GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0,
+        GROUP[0].x = (DISPLAY.width - GROUP[0].bounding_box[2] + 1) // 2
+        GROUP[0].y = DISPLAY.height // 2 - 1
+    # Elements 1-4 are an outline around the moon percentage -- text labels
+    # offset by 1 pixel up/down/left/right. Initial position is off the matrix,
+    # updated on first refresh. Initial text value must be long enough for
+    # longest anticipated string later.
+    for i in range(4):
+        GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0,
+                                                       text='99.9%', y=-99))
+    # Element 5 is the moon percentage (on top of the outline labels)
+    GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0xFFFF00,
                                                    text='99.9%', y=-99))
-# Element 5 is the moon percentage (on top of the outline labels)
-GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0xFFFF00,
-                                               text='99.9%', y=-99))
-# Element 6 is the current time
-GROUP.append(adafruit_display_text.label.Label(LARGE_FONT, color=0x808080,
-                                               text='12:00', y=-99))
-# Element 7 is the current date
-GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0x808080,
+    # Element 6 is the current time
+    GROUP.append(adafruit_display_text.label.Label(LARGE_FONT, color=0x808080,
+                                                    text='12:00', y=-99))
+    # Element 7 is the current date
+    GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0x808080,
                                                text='12/31', y=-99))
-# Element 8 is a symbol indicating next rise or set
-GROUP.append(adafruit_display_text.label.Label(SYMBOL_FONT, color=0x00FF00,
-                                               text='x', y=-99))
-# Element 9 is the time of (or time to) next rise/set event
-GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0x00FF00,
-                                               text='12:00', y=-99))
-DISPLAY.show(GROUP)
+    # Element 8 is a symbol indicating next rise or set
+    #GROUP.append(adafruit_display_text.label.Label(SYMBOL_FONT, color=0x00FF00,
+    #                                             text='x', y=-99))
+    # Element 9 is the time of (or time to) next rise/set event
+    GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0x00FF00,
+                                                   text='12:00', y=-99))
+    DISPLAY.show(GROUP)
 
-NETWORK = Network(status_neopixel=board.NEOPIXEL, debug=False)
-NETWORK.connect()
+    NETWORK = Network(status_neopixel=board.NEOPIXEL, debug=False)
+    NETWORK.connect()
 
-# LATITUDE, LONGITUDE, TIMEZONE are set up once, constant over app lifetime
+    # LATITUDE, LONGITUDE, TIMEZONE are set up once, constant over app lifetime
 
-# Fetch latitude/longitude from secrets.py. If not present, use
-# IP geolocation. This only needs to be done once, at startup!
-try:
-    LATITUDE = secrets['latitude']
-    LONGITUDE = secrets['longitude']
-    print('Using stored geolocation: ', LATITUDE, LONGITUDE)
-except KeyError:
-    LATITUDE, LONGITUDE = (
-        NETWORK.fetch_data('http://www.geoplugin.net/json.gp',
-                           json_path=[['geoplugin_latitude'],
-                                      ['geoplugin_longitude']]))
-    print('Using IP geolocation: ', LATITUDE, LONGITUDE)
+    # Fetch latitude/longitude from secrets.py. If not present, use
+    # IP geolocation. This only needs to be done once, at startup!
+    try:
+        LATITUDE = secrets['latitude']
+        LONGITUDE = secrets['longitude']
+        print('Using stored geolocation: ', LATITUDE, LONGITUDE)
+    except KeyError:
+        LATITUDE, LONGITUDE = (
+            NETWORK.fetch_data('http://www.geoplugin.net/json.gp',
+                               json_path=[['geoplugin_latitude'],
+                                          ['geoplugin_longitude']]))
+        print('Using IP geolocation: ', LATITUDE, LONGITUDE)
 
-# Load time zone string from secrets.py, else IP geolocation for this too
-# (http://worldtimeapi.org/api/timezone for list).
-try:
-    TIMEZONE = secrets['timezone'] # e.g. 'America/New_York'
-except:
-    TIMEZONE = None # IP geolocation
+    # Load time zone string from secrets.py, else IP geolocation for this too
+    # (http://worldtimeapi.org/api/timezone for list).
+    try:
+        TIMEZONE = secrets['timezone'] # e.g. 'America/New_York'
+    except:
+        TIMEZONE = None # IP geolocation
 
-# Set initial clock time, also fetch initial UTC offset while
-# here (NOT stored in secrets.py as it may change with DST).
-# pylint: disable=bare-except
-try:
-    DATETIME, UTC_OFFSET = update_time(TIMEZONE)
-except:
-    DATETIME, UTC_OFFSET = time.localtime(), '+00:00'
-LAST_SYNC = time.mktime(DATETIME)
+    # Set initial clock time, also fetch initial UTC offset while
+    # here (NOT stored in secrets.py as it may change with DST).
+    # pylint: disable=bare-except
+    try:
+        DATETIME, UTC_OFFSET = update_time(TIMEZONE)
+    except:
+        DATETIME, UTC_OFFSET = time.localtime(), '+00:00'
+    LAST_SYNC = time.mktime(DATETIME)
 
-# Poll server for moon data for current 24-hour period and +24 ahead
-PERIOD = []
-for DAY in range(2):
-    PERIOD.append(MoonData(DATETIME, DAY * 24, UTC_OFFSET))
-# PERIOD[0] is the current 24-hour time period we're in. PERIOD[1] is the
-# following 24 hours. Data is shifted down and new data fetched as days
-# expire. Thought we might need a PERIOD[2] for certain circumstances but
-# it appears not, that's changed easily enough if needed.
+    # Poll server for moon data for current 24-hour period and +24 ahead
+    PERIOD = []
+    for DAY in range(2):
+        PERIOD.append(MoonData(DATETIME, DAY * 24, UTC_OFFSET))
+    # PERIOD[0] is the current 24-hour time period we're in. PERIOD[1] is the
+    # following 24 hours. Data is shifted down and new data fetched as days
+    # expire. Thought we might need a PERIOD[2] for certain circumstances but
+    # it appears not, that's changed easily enough if needed.
 
 
 # MAIN LOOP ----------------------------------------------------------------
-
-while True:
+def update(cc_state):
     gc.collect()
     NOW = time.time() # Current epoch time in seconds
 
-    # Sync with time server every ~12 hours
-    if NOW - LAST_SYNC > 12 * 60 * 60:
+    # Sync with time server every ~2 hours
+    if NOW - LAST_SYNC > 2 * 60 * 60:
         try:
             DATETIME, UTC_OFFSET = update_time(TIMEZONE)
             LAST_SYNC = time.mktime(DATETIME)
@@ -289,7 +274,7 @@ while True:
             # respond. That's OK, keep running with our current time, and
             # push sync time ahead to retry in 30 minutes (don't overwhelm
             # the server with repeated queries).
-            LAST_SYNC += 30 * 60 * 60 # 30 minutes -> seconds
+            LAST_SYNC += 30 * 60 # 30 minutes -> seconds
 
     # If PERIOD has expired, move data down and fetch new +24-hour data
     if NOW >= PERIOD[1].midnight:
@@ -424,4 +409,4 @@ while True:
     GROUP[7].y = TIME_Y + 10
 
     DISPLAY.refresh() # Force full repaint (splash screen sometimes sticks)
-    time.sleep(5)
+    # time.sleep(5)

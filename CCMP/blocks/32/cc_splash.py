@@ -20,7 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-cc_config = {
-    'CCMP_model' : '32', # 32, 64h, 64v, 64x
-    'rotation' : 0,       # 0, 90, 180, 270 (degrees)
-}
+def init(cc_state):
+    pass
+
+def update(cc_state):
+    pass
+
