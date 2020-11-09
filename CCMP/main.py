@@ -38,10 +38,12 @@ except ImportError:
     raise
 
 cc_state = {
+    'CCMP_VERSION' : "0.0.1",
     'secrets' : secrets,
     'config' : cc_config,
+    'ticks' : 0,
     'blocks' : {},
-    'groups' : {}
+    'groups' : {},
 }
 
 def init(cc_state):
@@ -63,22 +65,42 @@ def init(cc_state):
     cc_state['matrix'] = matrix
     matrix.display.rotation = cc_state['config']['rotation']
     #
-    root_group = displayio.Group(max_size=8)
+    root_group = displayio.Group(max_size=12)
     root_group.append(
         Rect(0,0,cc_state['width'],cc_state['height'],
                 fill=0x001020, outline=0x444444)
-    ) ; cc_state['groups']['root'] = root_group
+    )
+    cc_state['groups']['ROOT'] = root_group
     #
     matrix.display.show(root_group)
 
+def import_block(cc_state, block_name):
+    try:
+        block = __import__(block_name)
+        cc_state['blocks'][block_name] = block
+        block.CC_blockID = block_name
+        return block
+    except ImportError:
+        print('Block not found:' + block_name)
+
 def load(cc_state):
-    pass
+    grp_ROOT = cc_state['groups']['ROOT']
+    for name,props in cc_state['config']['blocks'].items():
+        block = import_block(cc_state, name)
+        grp = block.cc_init(cc_state)
+        #
+        block_conf = cc_state['config']['blocks'][name]
+        grp.x = block_conf['x'] ; grp.y = block_conf['y']
+        #
+        cc_state['groups'][name] = grp
+        grp_ROOT.append(grp)
 
 def update(cc_state):
-    pass
+    for name, block in cc_state['blocks'].items():
+        block.cc_update(cc_state)
 
 def delay(cc_state):
-    time.sleep(0.2)
+    time.sleep(0.1)
 
 init(cc_state)
 load(cc_state)
@@ -86,3 +108,4 @@ load(cc_state)
 while True:
     update(cc_state)
     delay(cc_state)
+    cc_state['ticks'] += 1

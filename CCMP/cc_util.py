@@ -20,9 +20,26 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-def init(cc_state):
-    pass
+def ticks(cc_state):
+    return cc_state['ticks']
 
-def update(cc_state):
-    pass
+def tickM(cc_state, mod):
+    return cc_state['ticks'] % mod
 
+def tick4(cc_state):
+    return cc_state['ticks'] % 4
+
+import displayio, terminalio
+from adafruit_display_text import label
+
+def layout_group(grp_arr, gx=0, gy=0, lxi=5, lyi=1):
+    grp = displayio.Group(max_size=len(grp_arr))
+    grp.x=gx ; grp.y=gy
+    #
+    lx=2 ; ly=5
+    for i in range(len(grp_arr)):
+        lbl = label.Label(terminalio.FONT, max_glyphs=1, color=grp_arr[i][3])
+        lbl.text=grp_arr[i][0] ; lbl.x=lx+grp_arr[i][1] ; lbl.y=ly+grp_arr[i][2]
+        grp.append(lbl)
+        lx+=(lxi+grp_arr[i][1]) ; ly+=(lyi+grp_arr[i][2])
+    return grp

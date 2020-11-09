@@ -20,19 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import board, displayio, terminalio, time, gc
-from adafruit_matrixportal.matrix import Matrix
-from adafruit_display_shapes.rect import Rect
-from adafruit_display_text import label
-
-matrix = Matrix(width=32, height=32, bit_depth=6)
-grp_ccmp = displayio.Group(max_size=4)
-# matrix.display.rotation=270
-matrix.display.show(grp_ccmp)
-
-rect = Rect(0,0,32,32,fill=0x000020, outline=0x444444)
-grp_ccmp.append(rect)
-
 MEM = [
   ['M', 0, 0, 0x445500],
   ['e', 0, 0, 0x335511],
@@ -51,17 +38,9 @@ FREE = [
   ['0', 0, 0, 0x006655],
 ]
 
-def layout_group(grp_arr, gx=0, gy=0, lxi=5, lyi=1):
-    grp = displayio.Group(max_size=len(grp_arr))
-    grp.x=gx ; grp.y=gy
-    #
-    lx=2 ; ly=5
-    for i in range(len(grp_arr)):
-        lbl = label.Label(terminalio.FONT, max_glyphs=1, color=grp_arr[i][3])
-        lbl.text=grp_arr[i][0] ; lbl.x=lx+grp_arr[i][1] ; lbl.y=ly+grp_arr[i][2]
-        grp.append(lbl)
-        lx+=(lxi+grp_arr[i][1]) ; ly+=(lyi+grp_arr[i][2])
-    return grp
+import displayio, gc
+from adafruit_display_shapes.rect import Rect
+import cc_util
 
 def cycle_colors(grp, grp_arr, index):
     ln = len(grp_arr)
@@ -75,16 +54,25 @@ def update_free(grp_free):
     for i,lbl in enumerate(grp_free):
         lbl.text=ms[i]
 
-grp_mem = layout_group(MEM)
-grp_ccmp.append(grp_mem)
+CC_blockID = ""
 
-grp_free = layout_group(FREE, -1, 14)
-grp_ccmp.append(grp_free)
+def cc_init(cc_state):
+    grp_meminfo = displayio.Group(max_size=3)
+    rect = Rect(0,0,32,32,fill=0x000020, outline=0x444444)
+    grp_meminfo.append(rect)
+    #
+    grp_mem = cc_util.layout_group(MEM)
+    grp_meminfo.append(grp_mem)
+    #
+    grp_free = cc_util.layout_group(FREE, -1, 14)
+    grp_meminfo.append(grp_free)
+    #
+    return grp_meminfo
 
-counter=0
-while True:
-    cycle_colors(grp_mem, MEM, counter)
-    update_free(grp_free)
-    cycle_colors(grp_free, FREE, counter)
-    counter += 1
-    time.sleep(0.2)
+def cc_update(cc_state):
+    t = cc_util.ticks(cc_state)
+    grp = cc_state['groups'][CC_blockID]
+    #
+    cycle_colors(grp[1], MEM, t)
+    update_free(grp[2])
+    cycle_colors(grp[2], FREE, t)

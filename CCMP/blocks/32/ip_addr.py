@@ -20,3 +20,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import board, displayio, gc
+from adafruit_display_shapes.rect import Rect
+from adafruit_matrixportal.network import Network
+import cc_util
+
+CC_blockID = ""
+
+def cc_init(cc_state):
+    grp_ipaddr = displayio.Group(max_size=3)
+    rect = Rect(0,0,32,32,fill=0x000020, outline=0x444444)
+    grp_ipaddr.append(rect)
+    #
+    net = Network(status_neopixel=board.NEOPIXEL, debug=True)
+    # net.connect()
+    cc_state['network'] = net
+    #
+    return grp_ipaddr
+
+def cc_update(cc_state):
+    pass
+
