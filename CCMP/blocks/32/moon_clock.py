@@ -19,6 +19,7 @@ import json
 #import board
 #import busio
 import displayio
+import terminalio
 from rtc import RTC
 #from adafruit_bitmap_font import bitmap_font
 #import adafruit_display_text.label
@@ -115,18 +116,22 @@ def cc_init(cc_state):
     fontL = cc_state['fonts']['helvB12']
     fontS = cc_state['fonts']['helvR10']
     #
-    grp_clock = displayio.Group(max_size=4)
-    rect = Rect(0,0,32,32,fill=0x000010, outline=0x202020)
-    grp_clock.append(rect)
+    grp_clock = displayio.Group(max_size=6)
+    grp_clock.append(Rect(0,0,32,32,fill=0x000010, outline=0x202020))
     #
     lbl_time = label.Label(fontL, color=0x808080, text='00:00', x=4, y=7)
     grp_clock.append(lbl_time)
     #
-    lbl_date = label.Label(fontS, color=0x208040, text='13/33', x=4, y=16)
-    grp_clock.append(lbl_date)
+    lbl_month = label.Label(fontS, color=0x208040, text='Jan', x=4, y=16)
+    grp_clock.append(lbl_month)
     #
-    lbl_rise = label.Label(fontL, color=0x208040, text='00:00', x=16, y=26)
-    grp_clock.append(lbl_rise)
+    lbl_day_num = label.Label(fontL, color=0x208040, text='33', x=17, y=26)
+    grp_clock.append(lbl_day_num)
+    #
+    grp_clock.append(Rect(0,21,15,11,fill=0x001000, outline=0x202020))
+    #
+    lbl_day_wk = label.Label(terminalio.FONT, color=0x808080, text='Fr', x=2, y=26)
+    grp_clock.append(lbl_day_wk)
     #
     # LATITUDE, LONGITUDE, TIMEZONE are set up once, constant over app lifetime
     # Fetch latitude/longitude from secrets.py. If not present, use
@@ -185,6 +190,10 @@ MONTHS = [
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 ]
 
+DAYS = [
+    "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"
+]
+
 # MAIN LOOP ----------------------------------------------------------------
 def cc_update(cc_state):
     # gc.collect()
@@ -213,3 +222,6 @@ def cc_update(cc_state):
     grp[2].x = 16 - (grp[2].bounding_box[2] // 2)
     #
     grp[3].text = str(lt.tm_mday)
+    #
+    grp[5].text = DAYS[lt.tm_wday]
+    #
