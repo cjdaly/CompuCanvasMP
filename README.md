@@ -11,7 +11,6 @@ The CompuCanvas MP series uses an Adafruit [Matrix Portal](https://www.adafruit.
 * CompuCanvas MP-64x - 64x64 pixel matrix
 
 ## CompuCanvas MP construction
-
 Follow the steps in this [Adafruit guide](https://learn.adafruit.com/use-an-art-canvas-to-diffuse-RGB-matrix) to build a CompuCanvas MP.
 
 ## CompuCanvas MP software 

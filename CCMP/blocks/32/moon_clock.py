@@ -105,37 +105,27 @@ CC_blockData = {
     'time' : None,
     'date' : None,
     'last_sync' : None,
+    'lat': None,
+    'lon': None,
+    'tz' : None
 }
 
 # ONE-TIME INITIALIZATION --------------------------------------------------
 def cc_init(cc_state):
-    #MATRIX = Matrix(bit_depth=BITPLANES)
-    #DISPLAY = MATRIX.display
-    #LARGE_FONT = bitmap_font.load_font('/fonts/helvB12.bdf')
-    #SMALL_FONT = bitmap_font.load_font('/fonts/helvR10.bdf')
     fontL = cc_state['fonts']['helvB12']
     fontS = cc_state['fonts']['helvR10']
-    #LARGE_FONT.load_glyphs('0123456789:')
-    #SMALL_FONT.load_glyphs('0123456789:/.%')
-    # Display group is set up once, then we just shuffle items around later.
-    # Order of creation here determines their stacking order.
-    # GROUP = displayio.Group(max_size=10)
-    grp_clock = displayio.Group(max_size=4)
-    rect = Rect(0,0,32,32,fill=0x000020, outline=0x444444)
-    grp_clock.append(rect)
     #
-    # Element 6 is the current time
+    grp_clock = displayio.Group(max_size=4)
+    rect = Rect(0,0,32,32,fill=0x000010, outline=0x202020)
+    grp_clock.append(rect)
     #
     lbl_time = label.Label(fontL, color=0x808080, text='00:00', x=4, y=7)
     grp_clock.append(lbl_time)
-    # Element 7 is the current date
-    lbl_date = label.Label(fontS, color=0x808080, text='13/33', x=4, y=16)
+    #
+    lbl_date = label.Label(fontS, color=0x208040, text='13/33', x=4, y=16)
     grp_clock.append(lbl_date)
-    # Element 8 is a symbol indicating next rise or set
-    #GROUP.append(adafruit_display_text.label.Label(SYMBOL_FONT, color=0x00FF00,
-    #                                             text='x', y=-99))
-    # Element 9 is the time of (or time to) next rise/set event
-    lbl_rise = label.Label(fontL, color=0x808080, text='00:00', x=16, y=26)
+    #
+    lbl_rise = label.Label(fontL, color=0x208040, text='00:00', x=16, y=26)
     grp_clock.append(lbl_rise)
     #
     # LATITUDE, LONGITUDE, TIMEZONE are set up once, constant over app lifetime
@@ -217,10 +207,9 @@ def cc_update(cc_state):
     lt = time.localtime()
     #
     grp[1].text = hh_mm(lt)
-    #GROUP[6].x = CENTER_X - GROUP[6].bounding_box[2] // 2
-    #GROUP[6].y = TIME_Y
+    grp[1].x = 16 - (grp[1].bounding_box[2] // 2)
+    #
     grp[2].text =  MONTHS[lt.tm_mon]
-    #GROUP[7].x = CENTER_X - GROUP[7].bounding_box[2] // 2
-    #GROUP[7].y = TIME_Y + 10
+    grp[2].x = 16 - (grp[2].bounding_box[2] // 2)
     #
     grp[3].text = str(lt.tm_mday)
