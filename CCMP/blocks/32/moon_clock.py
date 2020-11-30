@@ -135,7 +135,7 @@ def cc_init(cc_state):
     #GROUP.append(adafruit_display_text.label.Label(SYMBOL_FONT, color=0x00FF00,
     #                                             text='x', y=-99))
     # Element 9 is the time of (or time to) next rise/set event
-    lbl_rise = label.Label(fontS, color=0x808080, text='00:00', x=4, y=26)
+    lbl_rise = label.Label(fontL, color=0x808080, text='00:00', x=16, y=26)
     grp_clock.append(lbl_rise)
     #
     # LATITUDE, LONGITUDE, TIMEZONE are set up once, constant over app lifetime
@@ -189,6 +189,11 @@ def cc_init(cc_state):
     #
     return grp_clock
 
+MONTHS = [
+    "~~~",
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+]
 
 # MAIN LOOP ----------------------------------------------------------------
 def cc_update(cc_state):
@@ -209,15 +214,13 @@ def cc_update(cc_state):
             CC_blockData['last_sync'] += 30 * 60 # 30 minutes -> seconds
     #
     grp = cc_state['groups'][CC_blockID]
-    # Update time (GROUP[6]) and date (GROUP[7])
-    now2 = time.localtime()
-    time_text = hh_mm(now2)
-    grp[1].text = time_text
+    lt = time.localtime()
+    #
+    grp[1].text = hh_mm(lt)
     #GROUP[6].x = CENTER_X - GROUP[6].bounding_box[2] // 2
     #GROUP[6].y = TIME_Y
-    date_text = str(now2.tm_mon) + '/' + str(now2.tm_mday)
-    grp[2].text = date_text
+    grp[2].text =  MONTHS[lt.tm_mon]
     #GROUP[7].x = CENTER_X - GROUP[7].bounding_box[2] // 2
     #GROUP[7].y = TIME_Y + 10
-    # DISPLAY.refresh() # Force full repaint (splash screen sometimes sticks)
-    # time.sleep(5)
+    #
+    grp[3].text = str(lt.tm_mday)
