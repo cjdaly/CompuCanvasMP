@@ -24,6 +24,7 @@ import board, displayio, terminalio, time
 from adafruit_matrixportal.matrix import Matrix
 from adafruit_display_shapes.rect import Rect
 from adafruit_display_text import label
+from adafruit_bitmap_font import bitmap_font
 
 try:
     from secrets import secrets
@@ -44,6 +45,8 @@ cc_state = {
     'ticks' : 0,
     'blocks' : {},
     'groups' : {},
+    'fonts' : {},
+    'network' : None,
 }
 
 def init(cc_state):
@@ -71,6 +74,9 @@ def init(cc_state):
                 fill=0x001020, outline=0x444444)
     )
     cc_state['groups']['ROOT'] = root_group
+    #
+    cc_state['fonts']['helvB12'] = bitmap_font.load_font('/fonts/helvB12.bdf')
+    cc_state['fonts']['helvR10'] = bitmap_font.load_font('/fonts/helvR10.bdf')
     #
     matrix.display.show(root_group)
 

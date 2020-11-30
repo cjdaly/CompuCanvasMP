@@ -25,6 +25,7 @@ cc_config = {
     'rotation' : 0,      # 0, 90, 180, 270 (degrees)
     'blocks' : {
         "blocks/32/ccmp_splash" : {"x":0, "y":0},
+        "blocks/32/ip_addr" : {"x":0, "y":32},
         "blocks/32/mem_info" : {"x":32, "y":0},
     }
 }

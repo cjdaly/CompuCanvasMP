@@ -38,8 +38,9 @@ def layout_group(grp_arr, gx=0, gy=0, lxi=5, lyi=1):
     #
     lx=2 ; ly=5
     for i in range(len(grp_arr)):
-        lbl = label.Label(terminalio.FONT, max_glyphs=1, color=grp_arr[i][3])
-        lbl.text=grp_arr[i][0] ; lbl.x=lx+grp_arr[i][1] ; lbl.y=ly+grp_arr[i][2]
+        txt = grp_arr[i][0]
+        lbl = label.Label(terminalio.FONT, max_glyphs=len(txt), color=grp_arr[i][3])
+        lbl.text=txt ; lbl.x=lx+grp_arr[i][1] ; lbl.y=ly+grp_arr[i][2]
         grp.append(lbl)
         lx+=(lxi+grp_arr[i][1]) ; ly+=(lyi+grp_arr[i][2])
     return grp
