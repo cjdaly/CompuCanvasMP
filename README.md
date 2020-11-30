@@ -10,6 +10,10 @@ The CompuCanvas MP series uses an Adafruit [Matrix Portal](https://www.adafruit.
 * CompuCanvas MP-64v - 32x64 pixel matrix (vertical)
 * CompuCanvas MP-64x - 64x64 pixel matrix
 
+## CompuCanvas MP construction
+
+Follow the steps in this [Adafruit guide](https://learn.adafruit.com/use-an-art-canvas-to-diffuse-RGB-matrix) to build a CompuCanvas MP.
+
 ## CompuCanvas MP software 
 The `CCMP` folder here contains a CircuitPython program that will drive the Matrix Portal with features like clocks, background images, message boards and more. To try it:
 
