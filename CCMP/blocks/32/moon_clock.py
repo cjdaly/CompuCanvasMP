@@ -103,8 +103,6 @@ def hh_mm(time_struct):
 
 CC_blockID = ""
 CC_blockData = {
-    'time' : None,
-    'date' : None,
     'last_sync' : None,
     'lat': None,
     'lon': None,
@@ -117,20 +115,20 @@ def cc_init(cc_state):
     fontS = cc_state['fonts']['helvR10']
     #
     grp_clock = displayio.Group(max_size=6)
-    grp_clock.append(Rect(0,0,32,32,fill=0x000010, outline=0x202020))
     #
-    lbl_time = label.Label(fontL, color=0x808080, text='00:00', x=4, y=7)
+    grp_clock.append(Rect(0,0, 32,32, fill=0x000020, outline=0x202020))
+    grp_clock.append(Rect(1,10, 30,11, fill=0x080030))
+    #
+    lbl_time = label.Label(fontL, color=0x808080, text='00:00', x=4, y=16)
     grp_clock.append(lbl_time)
     #
-    lbl_month = label.Label(fontS, color=0x208040, text='Jan', x=4, y=16)
+    lbl_month = label.Label(fontS, color=0x804000, text='Jan', x=1, y=25)
     grp_clock.append(lbl_month)
     #
-    lbl_day_num = label.Label(fontL, color=0x208040, text='33', x=17, y=26)
+    lbl_day_num = label.Label(fontS, color=0x804000, text='33', x=20, y=26)
     grp_clock.append(lbl_day_num)
     #
-    grp_clock.append(Rect(0,21,15,11,fill=0x001000, outline=0x202020))
-    #
-    lbl_day_wk = label.Label(terminalio.FONT, color=0x808080, text='Fr', x=2, y=26)
+    lbl_day_wk = label.Label(fontS, color=0x804000, text='Fri', x=8, y=6)
     grp_clock.append(lbl_day_wk)
     #
     # LATITUDE, LONGITUDE, TIMEZONE are set up once, constant over app lifetime
@@ -178,8 +176,6 @@ def cc_init(cc_state):
     print("datetime: " + str(datetime))
     print("UTC offset: " + utc_off)
     #
-    CC_blockData['datetime'] = datetime
-    CC_blockData['utc_off'] = utc_off
     CC_blockData['last_sync'] = time.mktime(datetime)
     #
     return grp_clock
@@ -191,20 +187,19 @@ MONTHS = [
 ]
 
 DAYS = [
-    "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"
+    "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
 ]
 
 # MAIN LOOP ----------------------------------------------------------------
 def cc_update(cc_state):
-    # gc.collect()
     now = time.time() # Current epoch time in seconds
     net = cc_state['network'] ; tz = CC_blockData['tz']
-    # Sync with time server every ~2 hours
-    if now - CC_blockData['last_sync'] > 2 * 60 * 60:
+    # Sync with time server every ~4 hours
+    if now - CC_blockData['last_sync'] > 4 * 60 * 60:
         try:
-            CC_blockData['datetime'], CC_blockData['utc_off'] = update_time(net, tz)
-            CC_blockData['last_sync'] = time.mktime(CC_blockData['datetime'])
-            # continue # Time may have changed; refresh NOW value
+            datetime, utc_off = update_time(net, tz)
+            CC_blockData['last_sync'] = time.mktime(datetime)
+            return
         except:
             # update_time() can throw an exception if time server doesn't
             # respond. That's OK, keep running with our current time, and
@@ -215,13 +210,13 @@ def cc_update(cc_state):
     grp = cc_state['groups'][CC_blockID]
     lt = time.localtime()
     #
-    grp[1].text = hh_mm(lt)
-    grp[1].x = 16 - (grp[1].bounding_box[2] // 2)
-    #
-    grp[2].text =  MONTHS[lt.tm_mon]
+    grp[2].text = hh_mm(lt)
     grp[2].x = 16 - (grp[2].bounding_box[2] // 2)
     #
-    grp[3].text = str(lt.tm_mday)
+    grp[3].text =  MONTHS[lt.tm_mon]
+    #
+    grp[4].text = "{: 2d}".format(lt.tm_mday)
     #
     grp[5].text = DAYS[lt.tm_wday]
+    grp[5].x = 16 - (grp[5].bounding_box[2] // 2)
     #
