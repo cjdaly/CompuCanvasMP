@@ -12,17 +12,11 @@ included in derivative projects, thanks. Tall splash images licensed from
 """
 
 # pylint: disable=import-error
-# import gc
 import time
-#import math
 import json
-#import board
-#import busio
 import displayio
 import terminalio
 from rtc import RTC
-#from adafruit_bitmap_font import bitmap_font
-#import adafruit_display_text.label
 from adafruit_display_text import label
 from adafruit_display_shapes.rect import Rect
 
@@ -32,9 +26,7 @@ import cc_util
 # CONFIGURABLE SETTINGS ----------------------------------------------------
 
 TWELVE_HOUR = True # If set, use 12-hour time vs 24-hour (e.g. 3:00 vs 15:00)
-# COUNTDOWN = False  # If set, show time to (vs time of) next rise/set event
-# BITPLANES = 6      # Ideally 6, but can set lower if RAM is tight
-
+SYNC_TIME = 4 * 60 * 60
 
 # SOME UTILITY FUNCTIONS AND CLASSES ---------------------------------------
 
@@ -140,43 +132,36 @@ def cc_init(cc_state):
         lat = cc_state['secrets']['latitude']
         lon = cc_state['secrets']['longitude']
         print('Using stored geolocation: ', lat, lon)
+        CC_blockData['lat'] = lat ; CC_blockData['lon'] = lon
     except KeyError:
-        if net:
-            geo = net.fetch_data('http://www.geoplugin.net/csv.gp')
-            geo = geo.splitlines()
-            for line in geo:
-                if line.startswith('geoplugin_latitude'):
-                    lat = line.split(',')[1].strip()
-                elif line.startswith('geoplugin_longitude'):
-                    lon = line.split(',')[1].strip()
-                elif line.startswith('geoplugin_timezone'):
-                    tz = line.split(',')[1].strip()
-            print('Using IP geolocation: ', lat, lon)
-        else:
-            print('Geolocation fail!')
-    CC_blockData['lat'] = lat ; CC_blockData['lon'] = lon
+        pass
+
+    #    if net:
+    #        geo = net.fetch_data('http://www.geoplugin.net/csv.gp')
+    #        geo = geo.splitlines()
+    #        for line in geo:
+    #            if line.startswith('geoplugin_latitude'):
+    #                lat = line.split(',')[1].strip()
+    #            elif line.startswith('geoplugin_longitude'):
+    #                lon = line.split(',')[1].strip()
+    #            elif line.startswith('geoplugin_timezone'):
+    #                tz = line.split(',')[1].strip()
+    #        print('Using IP geolocation: ', lat, lon)
+    #    else:
+    #        print('Geolocation fail!')
+
     #
     # Load time zone string from secrets.py, else IP geolocation for this too
     # (http://worldtimeapi.org/api/timezone for list).
     try:
         tz = cc_state['secrets']['timezone'] # e.g. 'America/New_York'
-    except:
+        CC_blockData['tz'] = tz
+    except KeyError:
         pass
-        # tz = None # IP geolocation
-    CC_blockData['tz'] = tz
+    
     #
-    # Set initial clock time, also fetch initial UTC offset while
-    # here (NOT stored in secrets.py as it may change with DST).
-    # pylint: disable=bare-except
-    # datetime = None ;  utc_off = None
-    try:
-        datetime, utc_off = update_time(net, tz)
-    except:
-        datetime, utc_off = time.localtime(), '+00:00'
-    print("datetime: " + str(datetime))
-    print("UTC offset: " + utc_off)
-    #
-    CC_blockData['last_sync'] = time.mktime(datetime)
+    # Set initial last_sync time to update time right away in cc_update
+    CC_blockData['last_sync'] = time.time() - SYNC_TIME
     #
     return grp_clock
 
@@ -195,7 +180,7 @@ def cc_update(cc_state):
     now = time.time() # Current epoch time in seconds
     net = cc_state['network'] ; tz = CC_blockData['tz']
     # Sync with time server every ~4 hours
-    if now - CC_blockData['last_sync'] > 4 * 60 * 60:
+    if now - CC_blockData['last_sync'] > SYNC_TIME:
         try:
             datetime, utc_off = update_time(net, tz)
             CC_blockData['last_sync'] = time.mktime(datetime)
@@ -203,9 +188,9 @@ def cc_update(cc_state):
         except:
             # update_time() can throw an exception if time server doesn't
             # respond. That's OK, keep running with our current time, and
-            # push sync time ahead to retry in 30 minutes (don't overwhelm
+            # push sync time ahead to retry in 10 minutes (don't overwhelm
             # the server with repeated queries).
-            CC_blockData['last_sync'] += 30 * 60 # 30 minutes -> seconds
+            CC_blockData['last_sync'] += 10 * 60 # 10 minutes
     #
     grp = cc_state['groups'][CC_blockID]
     lt = time.localtime()

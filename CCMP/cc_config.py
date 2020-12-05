@@ -24,8 +24,9 @@ cc_config = {
     'CCMP_model' : '32', # 32, 64h, 64v, 64x
     'rotation' : 0,      # 0, 90, 180, 270 (degrees)
     'blocks' : {
-        "blocks/32/ccmp_splash" : {"x":0, "y":0},
+        "blocks/32/moon_clock" : {"x":0, "y":0},
         "blocks/32/ip_addr" : {"x":0, "y":32},
         "blocks/32/mem_info" : {"x":32, "y":0},
+        "blocks/32/ccmp_splash" : {"x":32, "y":32},
     }
 }
