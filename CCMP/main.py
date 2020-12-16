@@ -82,7 +82,7 @@ def init(cc_state):
 
 def import_block(cc_state, block_name):
     try:
-        block = __import__(block_name)
+        block = __import__("/blocks/" + block_name)
         cc_state['blocks'][block_name] = block
         block.CC_blockID = block_name
         return block
@@ -91,7 +91,7 @@ def import_block(cc_state, block_name):
 
 def load(cc_state):
     grp_ROOT = cc_state['groups']['ROOT']
-    for name,props in cc_state['config']['blocks'].items():
+    for name in cc_state['config']['activeBlocks']:
         block = import_block(cc_state, name)
         grp = block.cc_init(cc_state)
         #
@@ -102,7 +102,8 @@ def load(cc_state):
         grp_ROOT.append(grp)
 
 def update(cc_state):
-    for name, block in cc_state['blocks'].items():
+    for name in cc_state['config']['activeBlocks']:
+        block = cc_state['blocks'][name]
         block.cc_update(cc_state)
 
 def delay(cc_state):

@@ -21,58 +21,38 @@
 # THE SOFTWARE.
 
 import board, displayio
+from adafruit_display_text import label
 from adafruit_display_shapes.rect import Rect
 from adafruit_matrixportal.network import Network
 import cc_util
 
-IP_ADDR = [
-  ["IP", -2, -1, 0x113377],
-  ["Addr", 3, 2, 0x113377],
-]
-
-IP_TRIPLETS = [
-  ["~~~", -8, 0, 0x331155],
-  ["~~~", 0, 0, 0x442244],
-  ["~~~", -30, 2, 0x552233],
-  ["~~~", 0, 0, 0x663333],
-]
-
 CC_blockID = ""
 
 def cc_init(cc_state):
+    grp_wifi = displayio.Group(max_size=2)
+    rect = Rect(0,0,32,32,fill=0x000020, outline=0x444444)
+    grp_wifi.append(rect)
+    #
+    font = cc_state['fonts']['helvB12']
+    lbl = label.Label(font, max_glyphs=4, color=0x800000)
+    lbl.text = "WiFi" ; lbl.x = 4 ; lbl.y = 14
+    grp_wifi.append(lbl)
+    #
     net = Network(status_neopixel=board.NEOPIXEL, debug=True)
     cc_state['network'] = net
-    cc_state['network_IP'] = "0.0.0.0"
     net.connect()
     #
-    grp_ipaddr = displayio.Group(max_size=3)
-    rect = Rect(0,0,32,32,fill=0x000020, outline=0x444444)
-    grp_ipaddr.append(rect)
-    #
-    grp_addr = cc_util.layout_group(IP_ADDR)
-    grp_ipaddr.append(grp_addr)
-    #
-    grp_trip = cc_util.layout_group(IP_TRIPLETS, 0, 10, 15, 3)
-    grp_ipaddr.append(grp_trip)
-    #
-    del IP_ADDR[:] ; del IP_TRIPLETS[:]
-    #
-    return grp_ipaddr
-
-def update_ipaddr(cc_state):
-    grp_trip = cc_state['groups'][CC_blockID][2]
-    ip4 = cc_state['network_IP'].split('.')
-    for i,lbl in enumerate(grp_trip):
-        lbl.text = "{: 3d}".format(int(ip4[i]))
+    return grp_wifi
 
 def cc_update(cc_state):
-    net = cc_state['network']
-    ip = cc_state['network_IP']
-    try:
-      ip = net.ip_address
-    except:
-      pass
-    if ip != cc_state['network_IP']:
-        cc_state['network_IP'] = ip
-        update_ipaddr(cc_state)
-
+    if cc_util.tickM(cc_state, 1024) == 0:
+        net = cc_state['network']
+        grp = cc_state['groups'][CC_blockID]
+        try:
+            ip = net.ip_address
+            if ip == "0.0.0.0":
+                grp[1].color = 0x800000
+            else:
+                grp[1].color = 0x008000
+        except:
+            grp[1].color = 0x800000

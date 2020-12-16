@@ -23,10 +23,16 @@
 cc_config = {
     'CCMP_model' : '32', # 32, 64h, 64v, 64x
     'rotation' : 0,      # 0, 90, 180, 270 (degrees)
+    'activeBlocks' : ["32/wifi", "32/moon_clock"],
     'blocks' : {
-        "blocks/32/moon_clock" : {"x":0, "y":0},
-        "blocks/32/ip_addr" : {"x":0, "y":32},
-        "blocks/32/mem_info" : {"x":32, "y":0},
-        "blocks/32/ccmp_splash" : {"x":32, "y":32},
+        "32/moon_clock" : {"x":0, "y":0},
+        "32/wifi" : {"x":0, "y":32},
+        "32/mem_info" : {"x":32, "y":0},
+        "32/ccmp_splash" : {"x":32, "y":32},
+        "64h/msg_board" : {"x":0, "y":32,
+            "bg" : 0x000810, "ol" : 0x333333,
+            "line1" : "Happy", "fg1" : 0x008000,
+            "line2" : "   Holidays", "fg2" : 0x800000,
+        },
     }
 }

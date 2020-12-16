@@ -72,8 +72,7 @@ def update_time(network, timezone=None):
     print("time data: ", time_data)
     time_struct = parse_time(time_data[0], time_data[1])
     RTC().datetime = time_struct
-    return time_struct, time_data[2]
-
+    return time_struct
 
 def hh_mm(time_struct):
     """ Given a time.struct_time, return a string as H:MM or HH:MM, either
@@ -117,7 +116,7 @@ def cc_init(cc_state):
     lbl_month = label.Label(fontS, color=0x804000, text='Jan', x=1, y=25)
     grp_clock.append(lbl_month)
     #
-    lbl_day_num = label.Label(fontS, color=0x804000, text='33', x=20, y=26)
+    lbl_day_num = label.Label(fontS, color=0x804000, text='33', x=17, y=26)
     grp_clock.append(lbl_day_num)
     #
     lbl_day_wk = label.Label(fontS, color=0x804000, text='Fri', x=8, y=6)
@@ -182,7 +181,7 @@ def cc_update(cc_state):
     # Sync with time server every ~4 hours
     if now - CC_blockData['last_sync'] > SYNC_TIME:
         try:
-            datetime, utc_off = update_time(net, tz)
+            datetime = update_time(net, tz)
             CC_blockData['last_sync'] = time.mktime(datetime)
             return
         except:
@@ -190,7 +189,7 @@ def cc_update(cc_state):
             # respond. That's OK, keep running with our current time, and
             # push sync time ahead to retry in 10 minutes (don't overwhelm
             # the server with repeated queries).
-            CC_blockData['last_sync'] += 10 * 60 # 10 minutes
+            CC_blockData['last_sync'] += 15 * 60 # 15 minutes
     #
     grp = cc_state['groups'][CC_blockID]
     lt = time.localtime()

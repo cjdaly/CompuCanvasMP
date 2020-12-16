@@ -21,58 +21,31 @@
 # THE SOFTWARE.
 
 import board, displayio
+from adafruit_display_text import label
 from adafruit_display_shapes.rect import Rect
-from adafruit_matrixportal.network import Network
 import cc_util
-
-IP_ADDR = [
-  ["IP", -2, -1, 0x113377],
-  ["Addr", 3, 2, 0x113377],
-]
-
-IP_TRIPLETS = [
-  ["~~~", -8, 0, 0x331155],
-  ["~~~", 0, 0, 0x442244],
-  ["~~~", -30, 2, 0x552233],
-  ["~~~", 0, 0, 0x663333],
-]
 
 CC_blockID = ""
 
 def cc_init(cc_state):
-    net = Network(status_neopixel=board.NEOPIXEL, debug=True)
-    cc_state['network'] = net
-    cc_state['network_IP'] = "0.0.0.0"
-    net.connect()
+    conf = cc_state['config']['blocks'][CC_blockID]
+    font = cc_state['fonts']['helvR10']
     #
-    grp_ipaddr = displayio.Group(max_size=3)
-    rect = Rect(0,0,32,32,fill=0x000020, outline=0x444444)
-    grp_ipaddr.append(rect)
+    grp_msg = displayio.Group(max_size=3)
+    rect = Rect(0,0,64,32,fill=conf['bg'], outline=conf['ol'])
+    grp_msg.append(rect)
     #
-    grp_addr = cc_util.layout_group(IP_ADDR)
-    grp_ipaddr.append(grp_addr)
+    line1 = label.Label(font, text=conf['line1'])
+    line1.x = 3 ; line1.y = 8 ; line1.color = conf['fg1']
+    grp_msg.append(line1)
     #
-    grp_trip = cc_util.layout_group(IP_TRIPLETS, 0, 10, 15, 3)
-    grp_ipaddr.append(grp_trip)
+    line2 = label.Label(font, text=conf['line2'])
+    line2.x = 3 ; line2.y = 20 ; line2.color = conf['fg2']
+    grp_msg.append(line2)
     #
-    del IP_ADDR[:] ; del IP_TRIPLETS[:]
-    #
-    return grp_ipaddr
+    return grp_msg
 
-def update_ipaddr(cc_state):
-    grp_trip = cc_state['groups'][CC_blockID][2]
-    ip4 = cc_state['network_IP'].split('.')
-    for i,lbl in enumerate(grp_trip):
-        lbl.text = "{: 3d}".format(int(ip4[i]))
 
 def cc_update(cc_state):
-    net = cc_state['network']
-    ip = cc_state['network_IP']
-    try:
-      ip = net.ip_address
-    except:
-      pass
-    if ip != cc_state['network_IP']:
-        cc_state['network_IP'] = ip
-        update_ipaddr(cc_state)
+    pass
 

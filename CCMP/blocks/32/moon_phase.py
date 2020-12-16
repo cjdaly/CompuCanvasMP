@@ -12,89 +12,29 @@ included in derivative projects, thanks. Tall splash images licensed from
 """
 
 # pylint: disable=import-error
-import gc
+# import gc
 import time
 import math
 import json
-import board
-import busio
+# import board
+# import busio
 import displayio
-from rtc import RTC
-from adafruit_matrixportal.network import Network
-from adafruit_matrixportal.matrix import Matrix
-from adafruit_bitmap_font import bitmap_font
-import adafruit_display_text.label
+# from rtc import RTC
 
+from adafruit_display_text import label
+from adafruit_display_shapes.rect import Rect
 
+import cc_util
 
 # CONFIGURABLE SETTINGS ----------------------------------------------------
 
-TWELVE_HOUR = True # If set, use 12-hour time vs 24-hour (e.g. 3:00 vs 15:00)
-COUNTDOWN = False  # If set, show time to (vs time of) next rise/set event
-BITPLANES = 6      # Ideally 6, but can set lower if RAM is tight
+#TWELVE_HOUR = True # If set, use 12-hour time vs 24-hour (e.g. 3:00 vs 15:00)
+#COUNTDOWN = False  # If set, show time to (vs time of) next rise/set event
+#BITPLANES = 6      # Ideally 6, but can set lower if RAM is tight
 
 
 # SOME UTILITY FUNCTIONS AND CLASSES ---------------------------------------
 
-def parse_time(timestring, is_dst=-1):
-    """ Given a string of the format YYYY-MM-DDTHH:MM:SS.SS-HH:MM (and
-        optionally a DST flag), convert to and return an equivalent
-        time.struct_time (strptime() isn't available here). Calling function
-        can use time.mktime() on result if epoch seconds is needed instead.
-        Time string is assumed local time; UTC offset is ignored. If seconds
-        value includes a decimal fraction it's ignored.
-    """
-    date_time = timestring.split('T')        # Separate into date and time
-    year_month_day = date_time[0].split('-') # Separate time into Y/M/D
-    hour_minute_second = date_time[1].split('+')[0].split('-')[0].split(':')
-    return time.struct_time(int(year_month_day[0]),
-                            int(year_month_day[1]),
-                            int(year_month_day[2]),
-                            int(hour_minute_second[0]),
-                            int(hour_minute_second[1]),
-                            int(hour_minute_second[2].split('.')[0]),
-                            -1, -1, is_dst)
-
-
-def update_time(timezone=None):
-    """ Update system date/time from WorldTimeAPI public server;
-        no account required. Pass in time zone string
-        (http://worldtimeapi.org/api/timezone for list)
-        or None to use IP geolocation. Returns current local time as a
-        time.struct_time and UTC offset as string. This may throw an
-        exception on fetch_data() - it is NOT CAUGHT HERE, should be
-        handled in the calling code because different behaviors may be
-        needed in different situations (e.g. reschedule for later).
-    """
-    if timezone: # Use timezone api
-        time_url = 'http://worldtimeapi.org/api/timezone/' + timezone
-    else: # Use IP geolocation
-        time_url = 'http://worldtimeapi.org/api/ip'
-
-    time_data = NETWORK.fetch_data(time_url,
-                                   json_path=[['datetime'], ['dst'],
-                                              ['utc_offset']])
-    time_struct = parse_time(time_data[0], time_data[1])
-    RTC().datetime = time_struct
-    return time_struct, time_data[2]
-
-
-def hh_mm(time_struct):
-    """ Given a time.struct_time, return a string as H:MM or HH:MM, either
-        12- or 24-hour style depending on global TWELVE_HOUR setting.
-        This is ONLY for 'clock time,' NOT for countdown time, which is
-        handled separately in the one spot where it's needed.
-    """
-    if TWELVE_HOUR:
-        if time_struct.tm_hour > 12:
-            hour_string = str(time_struct.tm_hour - 12) # 13-23 -> 1-11 (pm)
-        elif time_struct.tm_hour > 0:
-            hour_string = str(time_struct.tm_hour) # 1-12
-        else:
-            hour_string = '12' # 0 -> 12 (am)
-    else:
-        hour_string = '{0:0>2}'.format(time_struct.tm_hour)
-    return hour_string + ':' + '{0:0>2}'.format(time_struct.tm_min)
 
 
 # pylint: disable=too-few-public-methods
@@ -110,7 +50,7 @@ class MoonData():
         rise     : Epoch time of moon rise within this 24-hour period.
         set      : Epoch time of moon set within this 24-hour period.
     """
-    def __init__(self, datetime, hours_ahead, utc_offset):
+    def __init__(self, datetime, hours_ahead, utc_offset, cc_state, lat, lon):
         """ Initialize MoonData object elements (see above) from a
             time.struct_time, hours to skip ahead (typically 0 or 24),
             and a UTC offset (as a string) and a query to the MET Norway
@@ -130,8 +70,9 @@ class MoonData():
                 datetime.tm_sec,
                 -1, -1, -1)))
         # strftime() not available here
+
         url = ('https://api.met.no/weatherapi/sunrise/2.0/.json?lat=' +
-               str(LATITUDE) + '&lon=' + str(LONGITUDE) +
+               str(lat) + '&lon=' + str(lon) +
                '&date=' + str(datetime.tm_year) + '-' +
                '{0:0>2}'.format(datetime.tm_mon) + '-' +
                '{0:0>2}'.format(datetime.tm_mday) +
@@ -140,9 +81,9 @@ class MoonData():
         # pylint: disable=bare-except
         for _ in range(5): # Retries
             try:
-                full_data = json.loads(NETWORK.fetch_data(url))
+                full_data = json.loads(cc_state['network'].fetch_data(url))
                 moon_data = full_data['location']['time'][0]
-                #print(moon_data)
+                print(moon_data)
                 # Reconstitute JSON data into the elements we need
                 self.age = float(moon_data['moonphase']['value']) / 100
                 self.midnight = time.mktime(parse_time(
@@ -161,120 +102,131 @@ class MoonData():
             except:
                 # Moon server error (maybe), try again after 15 seconds.
                 # (Might be a memory error, that should be handled different)
+                print("MoonData fetch error!")
                 time.sleep(15)
+                print("MoonData fetch retry....")
 
+CC_blockID = ""
+CC_blockData = {
+}
 
 # ONE-TIME INITIALIZATION --------------------------------------------------
-def init(cc_state):
+def cc_init(cc_state):
     #MATRIX = Matrix(bit_depth=BITPLANES)
     #DISPLAY = MATRIX.display
     # LARGE_FONT = bitmap_font.load_font('/fonts/helvB12.bdf')
     # SMALL_FONT = bitmap_font.load_font('/fonts/helvR10.bdf')
     
-    LARGE_FONT.load_glyphs('0123456789:')
-    SMALL_FONT.load_glyphs('0123456789:/.%')
+    # LARGE_FONT.load_glyphs('0123456789:')
+    # SMALL_FONT.load_glyphs('0123456789:/.%')
+
+    grp_moon = displayio.Group(max_size=2)
+    rect = Rect(0,0,32,32,fill=0x000010, outline=0x111111)
+    grp_moon.append(rect)
 
     # Display group is set up once, then we just shuffle items around later.
     # Order of creation here determines their stacking order.
-    GROUP = displayio.Group(max_size=10)
+    # GROUP = displayio.Group(max_size=10)
     # Element 0 is a stand-in item, later replaced with the moon phase bitmap
     # pylint: disable=bare-except
-    try:
-        FILENAME = 'moon/splash-' + str(DISPLAY.rotation) + '.bmp'
-        BITMAP = displayio.OnDiskBitmap(open(FILENAME, 'rb'))
-        TILE_GRID = displayio.TileGrid(BITMAP,
-                                   pixel_shader=displayio.ColorConverter(),)
-        GROUP.append(TILE_GRID)
-    except:
-        GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0xFF0000,
-                                                   text='AWOO'))
-        GROUP[0].x = (DISPLAY.width - GROUP[0].bounding_box[2] + 1) // 2
-        GROUP[0].y = DISPLAY.height // 2 - 1
+    #rot = cc_state['config']['rotation']
+    #try:
+    #    FILENAME = 'BPMs/32/moon/splash-' + str(rot) + '.bmp'
+    #    BITMAP = displayio.OnDiskBitmap(open(FILENAME, 'rb'))
+    #    TILE_GRID = displayio.TileGrid(BITMAP,
+    #                               pixel_shader=displayio.ColorConverter(),)
+    #    GROUP.append(TILE_GRID)
+    #except:
+    #    GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0xFF0000,
+    #                                               text='AWOO'))
+    #    GROUP[0].x = (DISPLAY.width - GROUP[0].bounding_box[2] + 1) // 2
+    #    GROUP[0].y = DISPLAY.height // 2 - 1
     # Elements 1-4 are an outline around the moon percentage -- text labels
     # offset by 1 pixel up/down/left/right. Initial position is off the matrix,
     # updated on first refresh. Initial text value must be long enough for
     # longest anticipated string later.
-    for i in range(4):
-        GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0,
-                                                       text='99.9%', y=-99))
+    #for i in range(4):
+    #    GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0,
+    #                                                   text='99.9%', y=-99))
     # Element 5 is the moon percentage (on top of the outline labels)
-    GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0xFFFF00,
-                                                   text='99.9%', y=-99))
+    #GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0xFFFF00,
+    #                                               text='99.9%', y=-99))
     # Element 6 is the current time
-    GROUP.append(adafruit_display_text.label.Label(LARGE_FONT, color=0x808080,
-                                                    text='12:00', y=-99))
+    #GROUP.append(adafruit_display_text.label.Label(LARGE_FONT, color=0x808080,
+    #                                                text='12:00', y=-99))
     # Element 7 is the current date
-    GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0x808080,
-                                               text='12/31', y=-99))
+    #GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0x808080,
+    #                                           text='12/31', y=-99))
     # Element 8 is a symbol indicating next rise or set
     #GROUP.append(adafruit_display_text.label.Label(SYMBOL_FONT, color=0x00FF00,
     #                                             text='x', y=-99))
     # Element 9 is the time of (or time to) next rise/set event
-    GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0x00FF00,
-                                                   text='12:00', y=-99))
-    DISPLAY.show(GROUP)
+    #GROUP.append(adafruit_display_text.label.Label(SMALL_FONT, color=0x00FF00,
+    #                                               text='12:00', y=-99))
+    #DISPLAY.show(GROUP)
 
-    NETWORK = Network(status_neopixel=board.NEOPIXEL, debug=False)
-    NETWORK.connect()
+    #NETWORK = Network(status_neopixel=board.NEOPIXEL, debug=False)
+    #NETWORK.connect()
 
     # LATITUDE, LONGITUDE, TIMEZONE are set up once, constant over app lifetime
 
     # Fetch latitude/longitude from secrets.py. If not present, use
     # IP geolocation. This only needs to be done once, at startup!
-    try:
-        LATITUDE = secrets['latitude']
-        LONGITUDE = secrets['longitude']
-        print('Using stored geolocation: ', LATITUDE, LONGITUDE)
-    except KeyError:
-        LATITUDE, LONGITUDE = (
-            NETWORK.fetch_data('http://www.geoplugin.net/json.gp',
-                               json_path=[['geoplugin_latitude'],
-                                          ['geoplugin_longitude']]))
-        print('Using IP geolocation: ', LATITUDE, LONGITUDE)
+    #try:
+    #    LATITUDE = secrets['latitude']
+    #    LONGITUDE = secrets['longitude']
+    #    print('Using stored geolocation: ', LATITUDE, LONGITUDE)
+    #except KeyError:
+    #    LATITUDE, LONGITUDE = (
+    #        NETWORK.fetch_data('http://www.geoplugin.net/json.gp',
+    #                           json_path=[['geoplugin_latitude'],
+    #                                      ['geoplugin_longitude']]))
+    #    print('Using IP geolocation: ', LATITUDE, LONGITUDE)
 
     # Load time zone string from secrets.py, else IP geolocation for this too
     # (http://worldtimeapi.org/api/timezone for list).
-    try:
-        TIMEZONE = secrets['timezone'] # e.g. 'America/New_York'
-    except:
-        TIMEZONE = None # IP geolocation
+    #try:
+    #    TIMEZONE = secrets['timezone'] # e.g. 'America/New_York'
+    #except:
+    #    TIMEZONE = None # IP geolocation
 
     # Set initial clock time, also fetch initial UTC offset while
     # here (NOT stored in secrets.py as it may change with DST).
     # pylint: disable=bare-except
-    try:
-        DATETIME, UTC_OFFSET = update_time(TIMEZONE)
-    except:
-        DATETIME, UTC_OFFSET = time.localtime(), '+00:00'
-    LAST_SYNC = time.mktime(DATETIME)
+    #try:
+    #    DATETIME, UTC_OFFSET = update_time(TIMEZONE)
+    #except:
+    #    DATETIME, UTC_OFFSET = time.localtime(), '+00:00'
+    #LAST_SYNC = time.mktime(DATETIME)
 
     # Poll server for moon data for current 24-hour period and +24 ahead
-    PERIOD = []
-    for DAY in range(2):
-        PERIOD.append(MoonData(DATETIME, DAY * 24, UTC_OFFSET))
+    #PERIOD = []
+    #for DAY in range(2):
+    #    PERIOD.append(MoonData(DATETIME, DAY * 24, UTC_OFFSET))
     # PERIOD[0] is the current 24-hour time period we're in. PERIOD[1] is the
     # following 24 hours. Data is shifted down and new data fetched as days
     # expire. Thought we might need a PERIOD[2] for certain circumstances but
     # it appears not, that's changed easily enough if needed.
+    return grp_moon
 
 
 # MAIN LOOP ----------------------------------------------------------------
-def update(cc_state):
-    gc.collect()
-    NOW = time.time() # Current epoch time in seconds
+def cc_update(cc_state):
+    #gc.collect()
+    now = time.time() # Current epoch time in seconds
 
     # Sync with time server every ~2 hours
-    if NOW - LAST_SYNC > 2 * 60 * 60:
-        try:
-            DATETIME, UTC_OFFSET = update_time(TIMEZONE)
-            LAST_SYNC = time.mktime(DATETIME)
-            continue # Time may have changed; refresh NOW value
-        except:
+    #if NOW - LAST_SYNC > 2 * 60 * 60:
+    #    try:
+    #        DATETIME, UTC_OFFSET = update_time(TIMEZONE)
+    #        LAST_SYNC = time.mktime(DATETIME)
+    #        continue # Time may have changed; refresh NOW value
+    #    except:
             # update_time() can throw an exception if time server doesn't
             # respond. That's OK, keep running with our current time, and
             # push sync time ahead to retry in 30 minutes (don't overwhelm
             # the server with repeated queries).
-            LAST_SYNC += 30 * 60 # 30 minutes -> seconds
+    #        LAST_SYNC += 30 * 60 # 30 minutes -> seconds
 
     # If PERIOD has expired, move data down and fetch new +24-hour data
     if NOW >= PERIOD[1].midnight:
@@ -346,7 +298,7 @@ def update(cc_state):
     print()
 
     # Update moon image (GROUP[0])
-    FILENAME = 'moon/moon' + '{0:0>2}'.format(FRAME) + '.bmp'
+    FILENAME = '/BMPs/32/moon/moon' + '{0:0>2}'.format(FRAME) + '.bmp'
     BITMAP = displayio.OnDiskBitmap(open(FILENAME, 'rb'))
     TILE_GRID = displayio.TileGrid(BITMAP,
                                    pixel_shader=displayio.ColorConverter(),)
@@ -398,15 +350,15 @@ def update(cc_state):
                                        else 0xC04000)
 
     # Update time (GROUP[6]) and date (GROUP[7])
-    NOW = time.localtime()
-    STRING = hh_mm(NOW)
-    GROUP[6].text = STRING
-    GROUP[6].x = CENTER_X - GROUP[6].bounding_box[2] // 2
-    GROUP[6].y = TIME_Y
-    STRING = str(NOW.tm_mon) + '/' + str(NOW.tm_mday)
-    GROUP[7].text = STRING
-    GROUP[7].x = CENTER_X - GROUP[7].bounding_box[2] // 2
-    GROUP[7].y = TIME_Y + 10
+    #NOW = time.localtime()
+    #STRING = hh_mm(NOW)
+    #GROUP[6].text = STRING
+    #GROUP[6].x = CENTER_X - GROUP[6].bounding_box[2] // 2
+    #GROUP[6].y = TIME_Y
+    #STRING = str(NOW.tm_mon) + '/' + str(NOW.tm_mday)
+    #GROUP[7].text = STRING
+    #GROUP[7].x = CENTER_X - GROUP[7].bounding_box[2] // 2
+    #GROUP[7].y = TIME_Y + 10
 
-    DISPLAY.refresh() # Force full repaint (splash screen sometimes sticks)
+    #DISPLAY.refresh() # Force full repaint (splash screen sometimes sticks)
     # time.sleep(5)
