@@ -29,19 +29,16 @@ CC_blockID = ""
 
 def cc_init(cc_state):
     conf = cc_state['config']['blocks'][CC_blockID]
-    font = cc_state['fonts']['helvR10']
     #
-    grp_msg = displayio.Group(max_size=3)
+    grp_msg = displayio.Group(max_size=len(conf['lines'])+1)
     rect = Rect(0,0,64,32,fill=conf['bg'], outline=conf['ol'])
     grp_msg.append(rect)
     #
-    line1 = label.Label(font, text=conf['line1'])
-    line1.x = 3 ; line1.y = 8 ; line1.color = conf['fg1']
-    grp_msg.append(line1)
-    #
-    line2 = label.Label(font, text=conf['line2'])
-    line2.x = 3 ; line2.y = 20 ; line2.color = conf['fg2']
-    grp_msg.append(line2)
+    for li in conf['lines']:
+        font = cc_state['fonts'][li[3]]
+        lbl = label.Label(
+            font, text=li[0], x=li[1], y=li[2], color=li[4])
+        grp_msg.append(lbl)
     #
     return grp_msg
 

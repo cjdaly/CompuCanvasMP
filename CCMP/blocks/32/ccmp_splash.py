@@ -70,8 +70,10 @@ def cc_init(cc_state):
     return grp_ccmp
 
 def cc_update(cc_state):
-    t = cc_util.ticks(cc_state)
+    t = cc_util.tick4(cc_state)
     grp = cc_state['groups'][CC_blockID]
     #
-    cycle_colors(grp[1], COMPU, t)
-    cycle_colors(grp[2], CANVAS, t)
+    if t == 0:
+      i = cc_util.ticks(cc_state) // 4
+      cycle_colors(grp[1], COMPU, i)
+      cycle_colors(grp[2], CANVAS, i)

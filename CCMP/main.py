@@ -75,6 +75,7 @@ def init(cc_state):
     )
     cc_state['groups']['ROOT'] = root_group
     #
+    cc_state['fonts']['terminal'] = terminalio.FONT
     cc_state['fonts']['helvB12'] = bitmap_font.load_font('/fonts/helvB12.bdf')
     cc_state['fonts']['helvR10'] = bitmap_font.load_font('/fonts/helvR10.bdf')
     #

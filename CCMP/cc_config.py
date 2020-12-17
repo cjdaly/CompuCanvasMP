@@ -30,9 +30,10 @@ cc_config = {
         "32/mem_info" : {"x":32, "y":0},
         "32/ccmp_splash" : {"x":32, "y":32},
         "64h/msg_board" : {"x":0, "y":32,
-            "bg" : 0x000810, "ol" : 0x333333,
-            "line1" : "Happy", "fg1" : 0x008000,
-            "line2" : "   Holidays", "fg2" : 0x800000,
+            "bg" : 0x000810, "ol" : 0x333333, "lines" : [
+                ["Happy", 5, 8, 'helvR10', 0x008000],
+                ["Holidays", 9, 20, 'helvR10', 0x800000],
+            ],
         },
     }
 }

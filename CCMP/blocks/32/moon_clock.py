@@ -30,47 +30,12 @@ SYNC_TIME = 4 * 60 * 60
 
 # SOME UTILITY FUNCTIONS AND CLASSES ---------------------------------------
 
-def parse_time(timestring, is_dst=-1):
-    """ Given a string of the format YYYY-MM-DDTHH:MM:SS.SS-HH:MM (and
-        optionally a DST flag), convert to and return an equivalent
-        time.struct_time (strptime() isn't available here). Calling function
-        can use time.mktime() on result if epoch seconds is needed instead.
-        Time string is assumed local time; UTC offset is ignored. If seconds
-        value includes a decimal fraction it's ignored.
-    """
-    date_time = timestring.split('T')        # Separate into date and time
-    year_month_day = date_time[0].split('-') # Separate time into Y/M/D
-    hour_minute_second = date_time[1].split('+')[0].split('-')[0].split(':')
-    return time.struct_time(int(year_month_day[0]),
-                            int(year_month_day[1]),
-                            int(year_month_day[2]),
-                            int(hour_minute_second[0]),
-                            int(hour_minute_second[1]),
-                            int(hour_minute_second[2].split('.')[0]),
-                            -1, -1, is_dst)
-
-
-def update_time(network, timezone=None):
-    """ Update system date/time from WorldTimeAPI public server;
-        no account required. Pass in time zone string
-        (http://worldtimeapi.org/api/timezone for list)
-        or None to use IP geolocation. Returns current local time as a
-        time.struct_time and UTC offset as string. This may throw an
-        exception on fetch_data() - it is NOT CAUGHT HERE, should be
-        handled in the calling code because different behaviors may be
-        needed in different situations (e.g. reschedule for later).
-    """
-    if timezone: # Use timezone api
-        time_url = 'http://worldtimeapi.org/api/timezone/' + timezone
-    else: # Use IP geolocation
-        time_url = 'http://worldtimeapi.org/api/ip'
-    print("time URL: ", time_url)
-    #
-    time_data = network.fetch_data(time_url,
-                                   json_path=[['datetime'], ['dst'],
-                                              ['utc_offset']])
-    print("time data: ", time_data)
-    time_struct = parse_time(time_data[0], time_data[1])
+def update_time(network, utc_offset = 0):
+    time_url = "https://io.adafruit.com/api/v2/time/seconds"
+    time_data = network.fetch_data(time_url)
+    # print("time data: " + time_data)
+    time_int = int(time_data) + utc_offset * 60 * 60
+    time_struct = time.localtime(time_int)
     RTC().datetime = time_struct
     return time_struct
 
@@ -134,21 +99,6 @@ def cc_init(cc_state):
         CC_blockData['lat'] = lat ; CC_blockData['lon'] = lon
     except KeyError:
         pass
-
-    #    if net:
-    #        geo = net.fetch_data('http://www.geoplugin.net/csv.gp')
-    #        geo = geo.splitlines()
-    #        for line in geo:
-    #            if line.startswith('geoplugin_latitude'):
-    #                lat = line.split(',')[1].strip()
-    #            elif line.startswith('geoplugin_longitude'):
-    #                lon = line.split(',')[1].strip()
-    #            elif line.startswith('geoplugin_timezone'):
-    #                tz = line.split(',')[1].strip()
-    #        print('Using IP geolocation: ', lat, lon)
-    #    else:
-    #        print('Geolocation fail!')
-
     #
     # Load time zone string from secrets.py, else IP geolocation for this too
     # (http://worldtimeapi.org/api/timezone for list).
@@ -157,7 +107,13 @@ def cc_init(cc_state):
         CC_blockData['tz'] = tz
     except KeyError:
         pass
-    
+    #
+    try:
+        utc_offset = cc_state['secrets']['utc_offset']
+        CC_blockData['utc_offset'] = utc_offset
+    except KeyError:
+        CC_blockData['utc_offset'] = 0
+    #
     #
     # Set initial last_sync time to update time right away in cc_update
     CC_blockData['last_sync'] = time.time() - SYNC_TIME
@@ -177,11 +133,11 @@ DAYS = [
 # MAIN LOOP ----------------------------------------------------------------
 def cc_update(cc_state):
     now = time.time() # Current epoch time in seconds
-    net = cc_state['network'] ; tz = CC_blockData['tz']
+    net = cc_state['network'] ; utc_offset = CC_blockData['utc_offset']
     # Sync with time server every ~4 hours
     if now - CC_blockData['last_sync'] > SYNC_TIME:
         try:
-            datetime = update_time(net, tz)
+            datetime = update_time(net, utc_offset)
             CC_blockData['last_sync'] = time.mktime(datetime)
             return
         except:
