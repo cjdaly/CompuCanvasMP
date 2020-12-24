@@ -36,7 +36,7 @@ The `CCMP` folder here contains a CircuitPython program that will drive the Matr
 secrets = {
   'ssid' : 'insert your WiFi name here',
   'password' : 'insert your WiFi password here',
-  #OPTIONAL# 'timezone' : "America/New_York", # http://worldtimeapi.org/timezones
+  'utc_offset' : -8, # PST
 }
 ```
 

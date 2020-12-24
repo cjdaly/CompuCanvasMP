@@ -155,7 +155,12 @@ def cc_update(cc_state):
     #
     grp[3].text =  MONTHS[lt.tm_mon]
     #
-    grp[4].text = "{: 2d}".format(lt.tm_mday)
+    mday = str(lt.tm_mday)
+    if len(mday) == 1:
+        grp[4].x = 22
+    else:
+        grp[4].x = 19
+    grp[4].text = mday
     #
     grp[5].text = DAYS[lt.tm_wday]
     grp[5].x = 16 - (grp[5].bounding_box[2] // 2)
