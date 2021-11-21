@@ -155,7 +155,10 @@ def cc_update(cc_state):
     #
     grp[3].text =  MONTHS[lt.tm_mon]
     if lt.tm_mon == 11:
-        grp[3].x = 0; grp[3].y = 26
+        if lt.tm_mday > 19:
+            grp[3].x = 0; grp[3].y = 27
+        else:
+            grp[3].x = 0; grp[3].y = 26
     else:
         grp[3].x = 1; grp[3].y = 25
     #
