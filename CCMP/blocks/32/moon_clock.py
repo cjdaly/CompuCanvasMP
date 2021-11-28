@@ -148,7 +148,8 @@ def cc_update(cc_state):
             CC_blockData['last_sync'] += 15 * 60 # 15 minutes
     #
     grp = cc_state['groups'][CC_blockID]
-    lt = time.localtime()
+    button_adjust = cc_state['buttons']['counter']
+    lt = time.localtime(time.time() + button_adjust*60*60)
     #
     grp[2].text = hh_mm(lt)
     grp[2].x = 16 - (grp[2].bounding_box[2] // 2)

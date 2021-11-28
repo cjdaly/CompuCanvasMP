@@ -20,7 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import board, displayio, terminalio, time
+import board, digitalio, time
+import displayio, terminalio
 from adafruit_matrixportal.matrix import Matrix
 from adafruit_display_shapes.rect import Rect
 from adafruit_display_text import label
@@ -47,6 +48,7 @@ cc_state = {
     'groups' : {},
     'fonts' : {},
     'network' : None,
+    'buttons' : {}
 }
 
 def init(cc_state):
@@ -78,6 +80,12 @@ def init(cc_state):
     cc_state['fonts']['terminal'] = terminalio.FONT
     cc_state['fonts']['helvB12'] = bitmap_font.load_font('/fonts/helvB12.bdf')
     cc_state['fonts']['helvR10'] = bitmap_font.load_font('/fonts/helvR10.bdf')
+    #
+    cc_state['buttons']['up'] = digitalio.DigitalInOut(board.BUTTON_UP)
+    cc_state['buttons']['up'].switch_to_input(digitalio.Pull.UP)
+    cc_state['buttons']['down'] = digitalio.DigitalInOut(board.BUTTON_DOWN)
+    cc_state['buttons']['down'].switch_to_input(digitalio.Pull.UP)
+    cc_state['buttons']['counter'] = 0
     #
     matrix.display.show(root_group)
 
@@ -113,7 +121,30 @@ def delay(cc_state):
 init(cc_state)
 load(cc_state)
 
+btU = cc_state['buttons']['up'] ; btU_debounce = 0
+btD = cc_state['buttons']['down'] ; btD_debounce = 0
+
+def updateButtons(cc_state):
+    global btU ; global btU_debounce
+    global btD ; global btD_debounce
+    #
+    if btU.value:
+        btU_debounce = 0
+    else:
+        btU_debounce += 1
+        if btU_debounce == 3:
+            cc_state['buttons']['counter'] += 1
+    #
+    if btD.value:
+        btD_debounce = 0
+    else:
+        btD_debounce += 1
+        if btD_debounce == 3:
+            cc_state['buttons']['counter'] -= 1
+
 while True:
+    updateButtons(cc_state)
     update(cc_state)
+    updateButtons(cc_state)
     delay(cc_state)
     cc_state['ticks'] += 1
